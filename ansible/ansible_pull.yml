@@ -1,0 +1,36 @@
+---
+
+- hosts: compute:104.236.33.124
+  remote_user: '{{uservar}}'
+  vars:
+    software:
+      - python-setuptools
+      - apache2
+      - ntpupdate
+  tasks:
+    - name: run this command and ignore the result
+      shell: hostname
+      ignore_errors: True
+      register: result
+    - debug: msg='{{result.stdout}}'
+
+    - name: install mysql and apache2
+      apt: name={{item}} state=installed
+      sudo: yes
+      with_items:
+        - '{{software}}'
+      tags: init
+   
+    -name: guarantee and apache2 are running
+     service: name=apache2 state=running
+     sudo: yes
+
+    -name: transfer apache2 configure file to remote
+     template: src=./apache2.j2 dest=/etc/apache2/apache2.conf
+     notify:
+       - restart apache2
+     when: result.stdout == '104.236.58.247'
+
+  handlers:
+    - name: restart apache2
+      service: name=apache2 state=restarted	
